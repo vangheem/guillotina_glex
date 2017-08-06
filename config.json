@@ -1,0 +1,27 @@
+{
+  "applications": ["guillotina_gcloudstorage", "guillotina_glex"],
+  "host": "127.0.0.1",
+  "port": 8080,
+  "root_user": {
+    "password": "root"
+  },
+  "cors": {
+      "allow_origin": ["http://localhost:8080", "http://localhost:3000"],
+    "allow_methods": ["GET", "POST", "DELETE", "HEAD", "PATCH", "OPTIONS"],
+    "allow_headers": ["*"],
+    "expose_headers": ["*"],
+    "allow_credentials": true,
+    "max_age": 3660
+  },
+  "utilities": [{
+    "provides": "guillotina_gcloudstorage.interfaces.IGCloudBlobStore",
+    "factory": "guillotina_gcloudstorage.storage.GCloudBlobStore",
+    "settings": {
+        "json_credentials": "project.json",
+        "bucket": "vangheem-media",
+        "project" : "grounded-gizmo-114019"
+    }
+  }],
+    "bucket_name": "vangheem-media",
+    "bucket_folders": ["Movies/", "TV Shows/"]
+}
