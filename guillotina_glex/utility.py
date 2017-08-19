@@ -1,14 +1,29 @@
-from guillotina_gcloudstorage.storage import OBJECT_BASE_URL
+import asyncio
+import logging
+
+import aiohttp
+
+from guillotina import app_settings, configure
+from guillotina.async import IAsyncUtility
 from guillotina.component import getUtility
 from guillotina_gcloudstorage.interfaces import IGCloudBlobStore
-from guillotina import configure
-from guillotina.async import IAsyncUtility
-import asyncio, logging, aiohttp
-from .db import DB
-from guillotina import app_settings
+from guillotina_gcloudstorage.storage import OBJECT_BASE_URL
 
+from .db import DB
 
 logger = logging.getLogger(__name__)
+
+
+_ignored_titles = (
+    'workout',
+    'pilates',
+    'all about',
+    'songs',
+    'insanity',
+)
+
+
+OMDB_URL = 'http://www.omdbapi.com/'
 
 
 class IGlexUtility(IAsyncUtility):
@@ -32,12 +47,34 @@ class GlexUtility:
         while True:
             try:
                 video = await self._queue.get()
-                self._queue.task_done()
+                await self.get_video_data(video)
             except Exception:
                 logger.warn(
                     'Error invalidating queue',
                     exc_info=True)
                 await asyncio.sleep(1)
+            finally:
+                self._queue.task_done()
+
+    async def get_video_data(self, video):
+        filename = video['name'].split('/')[-1]
+        video['filename'] = filename
+        name = '.'.join(filename.split('.')[:-1])
+        for ignored in _ignored_titles:
+            if ignored in name.lower():
+                return
+        async with aiohttp.ClientSession() as session:
+            resp = await session.get(OMDB_URL, params={
+                't': name,
+                'apikey': app_settings['omdb_api_key']
+            })
+            if resp.status == 200:
+                data = await resp.json()
+                if data['Response']:
+                    video['data'] = await resp.json()
+
+    async def finalize(self, app=None):
+        pass
 
     async def get_db(self):
         return await self._db.get()

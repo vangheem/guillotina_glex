@@ -1,7 +1,7 @@
 from guillotina import configure
 
-
 app_settings = {
+    'omdb_api_key': 'plsBanMe',
     'download_folder': '/tmp',
     'bucket_name': 'foobar',
     "auth_extractors": [

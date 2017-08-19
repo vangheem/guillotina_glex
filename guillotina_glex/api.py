@@ -12,6 +12,7 @@ from guillotina.api.service import DownloadService
 
 
 _cache = LRU(100)
+CHUNK_SIZE = 1024 * 1024 * 1
 
 
 def invalidate(key):
@@ -98,7 +99,7 @@ class Download(DownloadService):
             start, _, end = range_val.replace('bytes=', '').partition('-')
             start = int(start)
             if not end:
-                end = min(start + (1024 * 1024 * 5), int(video['size']) - 1)
+                end = min(start + CHUNK_SIZE, int(video['size']) - 1)
             end = int(end)
 
             data = await downloader.get_range(video, start, end + 1)
