@@ -1,15 +1,15 @@
 import asyncio
 
+from aiohttp.web import HTTPNotFound, Response, StreamResponse
+
 from guillotina import configure
+from guillotina.api.service import DownloadService
 from guillotina.component import getUtility
 from guillotina.utils import get_dotted_name
 from lru import LRU
-from .utility import IGlexUtility
-from aiohttp.web import StreamResponse, HTTPNotFound, Response
-from . import downloader
-from . import auth
-from guillotina.api.service import DownloadService
 
+from . import auth, downloader
+from .utility import IGlexUtility
 
 _cache = LRU(100)
 CHUNK_SIZE = 1024 * 1024 * 1
@@ -44,9 +44,9 @@ async def videos(context, request):
     return db['videos']
 
 
-@configure.service(method='HEAD', name='@download',
+@configure.service(method='HEAD', name='@stream',
                    permission='guillotina.AccessContent')
-async def download_head(context, request):
+async def stream_head(context, request):
     util = getUtility(IGlexUtility)
     db = await util.get_db()
     try:
@@ -58,42 +58,64 @@ async def download_head(context, request):
         'Content-Length': video['size']})
 
 
-@configure.service(method='GET', name='@download',
+@configure.service(method='HEAD', name='@download',
                    permission='guillotina.AccessContent')
-class Download(DownloadService):
-    async def __call__(self):
-        request = self.request
+async def download_head(context, request):
+    util = getUtility(IGlexUtility)
+    db = await util.get_db()
+    try:
+        video = db['videos'][request.GET['id']]
+    except IndexError:
+        return HTTPNotFound()
+    return Response(headers={
+        'Content-Length': video['size']})
+
+
+@configure.service(method='GET', name='@stream',
+                   permission='guillotina.AccessContent')
+class Stream(DownloadService):
+
+    async def download(self, video):
+        resp = StreamResponse(status=200)
+        resp.content_length = video['size']
+        resp.content_type = 'video/' + self.get_video_ext()
+        # request all data...
+        written = 0
+        await resp.prepare(self.request)
+        while True:
+            data = await downloader.get_range(
+                video, written, 1024 * 1024 * 5)
+            if data:
+                written += len(data)
+                resp.write(data)
+                await resp.drain()
+            else:
+                break
+        return resp
+
+    def get_video_ext(self, video):
+        return video['name'].split('.')[-1].lower()
+
+    async def get_video(self):
         util = getUtility(IGlexUtility)
         db = await util.get_db()
         try:
-            video = db['videos'][request.GET['id']]
+            return db['videos'][self.request.GET['id']]
         except IndexError:
+            return None
+
+    async def __call__(self):
+        request = self.request
+        video = await self.get_video()
+        if video is None:
             return HTTPNotFound()
 
         status = 200
         if 'Range' in request.headers:
             status = 206
 
-        name = video['name']
-        ext = name.split('.')[-1].lower()
-
         if status == 200:
-            resp = StreamResponse(status=status)
-            resp.content_length = video['size']
-            resp.content_type = 'video/' + ext
-            # request all data...
-            written = 0
-            await resp.prepare(request)
-            while True:
-                data = await downloader.get_range(
-                    video, written, 1024 * 1024 * 5)
-                if data:
-                    written += len(data)
-                    resp.write(data)
-                    await resp.drain()
-                else:
-                    break
-            return resp
+            return await self.download(video)
         else:
             range_val = request.headers['Range']
             start, _, end = range_val.replace('bytes=', '').partition('-')
@@ -110,9 +132,19 @@ class Download(DownloadService):
                 },
                 status=206,
                 body=data,
-                content_type='video/' + ext)
+                content_type='video/' + self.get_video_ext(video))
             await resp.prepare(request)
             return resp
+
+
+@configure.service(method='GET', name='@download',
+                   permission='guillotina.AccessContent')
+class Download(Stream):
+    async def __call__(self):
+        video = await self.get_video()
+        if video is None:
+            return HTTPNotFound()
+        return await self.download(video)
 
 
 @configure.service(method='POST', name='@get-token',

@@ -20,7 +20,8 @@ _ignored_titles = (
     'all about',
     'songs',
     'insanity',
-    'lesson'
+    'lesson',
+    'disc'
 )
 
 
