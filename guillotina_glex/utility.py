@@ -67,7 +67,7 @@ class GlexUtility:
                 return
         tries = [
             name,
-            name.split('_', ' ')
+            name.replace('_', ' ')
         ]
         for removed in ('-', ':', '('):
             if removed in name:
