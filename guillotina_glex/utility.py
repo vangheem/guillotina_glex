@@ -20,6 +20,7 @@ _ignored_titles = (
     'all about',
     'songs',
     'insanity',
+    'lesson'
 )
 
 
@@ -59,13 +60,17 @@ class GlexUtility:
     async def get_video_data(self, video):
         filename = video['name'].split('/')[-1]
         video['filename'] = filename
-        name = '.'.join(filename.split('.')[:-1])
+        name = '.'.join(filename.split('.')[:-1]).replace('.', '')
         for ignored in _ignored_titles:
             if ignored in name.lower():
                 return
-        tries = [name]
-        if '-' in name:
-            tries.append(name.split('-')[0].strip())
+        tries = [
+            name,
+            name.split('_', ' ')
+        ]
+        for removed in ('-', ':', '('):
+            if removed in name:
+                tries.append(name.split(removed)[0].strip())
         for movie_name in tries:
             logger.warn(f'searching for movie name {movie_name}')
             async with aiohttp.ClientSession() as session:
