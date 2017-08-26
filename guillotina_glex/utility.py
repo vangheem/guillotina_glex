@@ -1,5 +1,8 @@
 import asyncio
+import base64
+import json
 import logging
+import os
 
 import aiohttp
 
@@ -59,6 +62,17 @@ class GlexUtility:
                 self._queue.task_done()
 
     async def get_video_data(self, video):
+        if not os.path.exists(app_settings['download_folder']):
+            os.mkdir(app_settings['download_folder'])
+        storage_filename = '{}-info'.format(
+            base64.b64encode(video['id'].encode('utf8')).decode('utf8'))
+        filepath = os.path.join(app_settings['download_folder'],
+                                storage_filename)
+        if os.path.exists(filepath):
+            with open(filepath) as fi:
+                video['data'] = json.loads(fi.read())
+                return
+
         filename = video['name'].split('/')[-1]
         video['filename'] = filename
         name = '.'.join(filename.split('.')[:-1]).replace('.', '')
@@ -83,11 +97,17 @@ class GlexUtility:
                     data = await resp.json()
                     if data['Response'] == 'True':
                         video['data'] = data
+                        with open(filepath, 'w') as fi:
+                            fi.write(json.dumps(data))
                         return
                 else:
                     data = await resp.text()
-                    logger.warn(f'error getting video data for {name}, status: {resp.status}, text: {data}')
+                    logger.warn(f'error getting video data for {name}, '
+                                f'status: {resp.status}, text: {data}')
                     return
+        # nothing found, write to that effect...
+        with open(filepath, 'w') as fi:
+            fi.write(json.dumps({'Response': 'False'}))
 
     async def finalize(self, app=None):
         pass
