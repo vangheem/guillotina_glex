@@ -88,7 +88,7 @@ class Stream(DownloadService):
         await resp.prepare(self.request)
         while True:
             data = await downloader.get_range(
-                video, written, 1024 * 1024 * 5)
+                video, written, written + (1024 * 1024 * 5), preload_end=False)
             if data:
                 written += len(data)
                 resp.write(data)

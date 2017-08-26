@@ -1,10 +1,15 @@
-from guillotina_gcloudstorage.interfaces import IGCloudBlobStore
-from guillotina.component import getUtility
-import aiohttp
-import os
-from guillotina import app_settings
 import asyncio
 import base64
+import logging
+import os
+
+import aiohttp
+
+from guillotina import app_settings
+from guillotina.component import getUtility
+from guillotina_gcloudstorage.interfaces import IGCloudBlobStore
+
+logger = logging.getLogger('guillotina_glex')
 
 
 def _get_filename(video):
@@ -71,17 +76,22 @@ async def download_task(video):
         del _tasks[video['id']]
 
 
-async def get_range(video, start, end):
-    if end > (int(video['size']) + 1):
+async def get_range(video, start, end, preload_end=True):
+    if start > (int(video['size']) + 1):
+        return b''
+    if start >= end:
         return b''
 
     filepath = os.path.join(app_settings['download_folder'],
                             _get_filename(video))
     if not os.path.exists(filepath):
         _tasks[video['id']] = [
-            asyncio.Task(download_task(video)),
-            asyncio.Task(download_task_end(video))
+            asyncio.Task(download_task(video))
         ]
+        if preload_end:
+            _tasks[video['id']].append(
+                asyncio.Task(download_task_end(video))
+            )
 
     while not os.path.exists(filepath):
         print(f'waiting for file {filepath}')
@@ -105,7 +115,7 @@ async def get_range(video, start, end):
             data = fi.read(end - start)
             fi.close()
             return data
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.1)
         st = os.stat(filepath)
         current_size = st.st_size
 
