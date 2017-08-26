@@ -66,10 +66,11 @@ class GlexUtility:
         tries = [name]
         if '-' in name:
             tries.append(name.split('-')[0].strip())
-        for name in tries:
+        for movie_name in tries:
+            logger.info(f'searching for movie name {movie_name}')
             async with aiohttp.ClientSession() as session:
                 resp = await session.get(OMDB_URL, params={
-                    't': name,
+                    't': movie_name,
                     'apikey': app_settings['omdb_api_key']
                 })
                 if resp.status == 200:
