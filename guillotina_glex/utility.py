@@ -50,7 +50,7 @@ class GlexUtility:
                 await self.get_video_data(video)
             except Exception:
                 logger.warn(
-                    'Error invalidating queue',
+                    'error getting video data',
                     exc_info=True)
                 await asyncio.sleep(1)
             finally:
@@ -72,6 +72,9 @@ class GlexUtility:
                 data = await resp.json()
                 if data['Response']:
                     video['data'] = await resp.json()
+            else:
+                data = await resp.text()
+                logger.warn(f'error getting video data for {name}, status: {resp.status}, text: {data}')
 
     async def finalize(self, app=None):
         pass
