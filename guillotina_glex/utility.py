@@ -79,7 +79,7 @@ class GlexUtility:
         if os.path.exists(filepath):
             with open(filepath) as fi:
                 video['data'] = json.loads(fi.read())
-                logger.info(f'found cached data for movie for {filename}')
+                logger.warn(f'found cached data for movie for {filename}')
                 return
 
         tries = [

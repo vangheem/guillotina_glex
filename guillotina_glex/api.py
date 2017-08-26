@@ -76,7 +76,11 @@ async def download_head(context, request):
 class Stream(DownloadService):
 
     async def download(self, video):
-        resp = StreamResponse(status=200)
+        resp = StreamResponse(
+            status=200,
+            headers={
+                'Content-Disposition': f'attachment; filename="{video["filename"]}"'
+            })
         resp.content_length = video['size']
         resp.content_type = 'video/' + self.get_video_ext(video)
         # request all data...
