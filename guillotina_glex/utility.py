@@ -63,18 +63,24 @@ class GlexUtility:
         for ignored in _ignored_titles:
             if ignored in name.lower():
                 return
-        async with aiohttp.ClientSession() as session:
-            resp = await session.get(OMDB_URL, params={
-                't': name,
-                'apikey': app_settings['omdb_api_key']
-            })
-            if resp.status == 200:
-                data = await resp.json()
-                if data['Response']:
-                    video['data'] = await resp.json()
-            else:
-                data = await resp.text()
-                logger.warn(f'error getting video data for {name}, status: {resp.status}, text: {data}')
+        tries = [name]
+        if '-' in name:
+            tries.append(name.split('-')[0].strip())
+        for name in tries:
+            async with aiohttp.ClientSession() as session:
+                resp = await session.get(OMDB_URL, params={
+                    't': name,
+                    'apikey': app_settings['omdb_api_key']
+                })
+                if resp.status == 200:
+                    data = await resp.json()
+                    if data['Response']:
+                        video['data'] = data
+                        return
+                else:
+                    data = await resp.text()
+                    logger.warn(f'error getting video data for {name}, status: {resp.status}, text: {data}')
+                    return
 
     async def finalize(self, app=None):
         pass
