@@ -75,7 +75,7 @@ class GlexUtility:
                 })
                 if resp.status == 200:
                     data = await resp.json()
-                    if data['Response']:
+                    if data['Response'] == 'True':
                         video['data'] = data
                         return
                 else:
