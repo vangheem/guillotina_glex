@@ -1,8 +1,11 @@
 import asyncio
+import base64
+import json
+import os
 
 from aiohttp.web import HTTPNotFound, Response, StreamResponse
 
-from guillotina import configure
+from guillotina import app_settings, configure
 from guillotina.api.service import DownloadService
 from guillotina.component import getUtility
 from guillotina.utils import get_dotted_name
@@ -71,6 +74,15 @@ async def download_head(context, request):
         'Content-Length': video['size']})
 
 
+async def get_video(video_id):
+    util = getUtility(IGlexUtility)
+    db = await util.get_db()
+    try:
+        return db['videos'][video_id]
+    except IndexError:
+        return None
+
+
 @configure.service(method='GET', name='@stream',
                    permission='guillotina.AccessContent')
 class Stream(DownloadService):
@@ -100,17 +112,10 @@ class Stream(DownloadService):
     def get_video_ext(self, video):
         return video['name'].split('.')[-1].lower()
 
-    async def get_video(self):
-        util = getUtility(IGlexUtility)
-        db = await util.get_db()
-        try:
-            return db['videos'][self.request.GET['id']]
-        except IndexError:
-            return None
 
     async def __call__(self):
         request = self.request
-        video = await self.get_video()
+        video = await get_video(self.request.GET['id'])
         if video is None:
             return HTTPNotFound()
 
@@ -145,7 +150,7 @@ class Stream(DownloadService):
                    permission='guillotina.AccessContent')
 class Download(Stream):
     async def __call__(self):
-        video = await self.get_video()
+        video = await get_video(self.request.GET['id'])
         if video is None:
             return HTTPNotFound()
         return await self.download(video)
@@ -155,3 +160,25 @@ class Download(Stream):
                    permission='guillotina.AccessContent')
 async def get_token(context, request):
     return auth.get_token(request)
+
+
+@configure.service(method='POST', name='@edit-data',
+                   permission='guillotina.AccessContent')
+async def edit_data(context, request):
+    req_data = await request.json()
+    video = await get_video(req_data['id'])
+    if video is None:
+        return {'error': True}
+
+    data = req_data['data']
+    video['data'] = data
+
+    if not os.path.exists(app_settings['download_folder']):
+        os.mkdir(app_settings['download_folder'])
+    storage_filename = '{}-info'.format(
+        base64.b64encode(video['id'].encode('utf8')).decode('utf8'))
+    filepath = os.path.join(app_settings['download_folder'],
+                            storage_filename)
+    with open(filepath, 'w') as fi:
+        fi.write(json.dumps(data))
+    return {'success': True}

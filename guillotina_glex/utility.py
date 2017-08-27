@@ -62,13 +62,9 @@ class GlexUtility:
                 self._queue.task_done()
 
     async def get_video_data(self, video):
-
         filename = video['name'].split('/')[-1]
         video['filename'] = filename
         name = '.'.join(filename.split('.')[:-1]).replace('.', '')
-        for ignored in _ignored_titles:
-            if ignored in name.lower():
-                return
 
         if not os.path.exists(app_settings['download_folder']):
             os.mkdir(app_settings['download_folder'])
@@ -82,6 +78,9 @@ class GlexUtility:
                 logger.warn(f'found cached data for movie for {filename}')
                 return
 
+        for ignored in _ignored_titles:
+            if ignored in name.lower():
+                return
         tries = [
             name,
             name.replace('_', ' ')
