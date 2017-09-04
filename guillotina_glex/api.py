@@ -171,7 +171,7 @@ class Stream(DownloadService):
             if not end:
                 end = min(start + CHUNK_SIZE, int(video['size']) - 1)
             end = int(end)
-            resp = Response(
+            resp = StreamResponse(
                 headers={
                     'Accept-Ranges': 'Bytes',
                     'Content-Range': f'bytes {start}-{end}/{video["size"]}',
