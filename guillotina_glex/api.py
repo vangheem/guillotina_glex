@@ -165,6 +165,12 @@ class Stream(DownloadService):
         if status == 200:
             return await self.download(video)
         else:
+            range_val = request.headers['Range']
+            start, _, end = range_val.replace('bytes=', '').partition('-')
+            start = int(start)
+            if not end:
+                end = min(start + CHUNK_SIZE, int(video['size']) - 1)
+            end = int(end)
             resp = Response(
                 headers={
                     'Accept-Ranges': 'Bytes',
@@ -172,12 +178,6 @@ class Stream(DownloadService):
                 },
                 status=206,
                 content_type='video/' + self.get_video_ext(video))
-            range_val = request.headers['Range']
-            start, _, end = range_val.replace('bytes=', '').partition('-')
-            start = int(start)
-            if not end:
-                end = min(start + CHUNK_SIZE, int(video['size']) - 1)
-            end = int(end)
             resp.content_length = (end - start) + 1
             await resp.prepare(request)
             data = await downloader.get_range(video, start, end + 1)
