@@ -167,7 +167,7 @@ class Stream(DownloadService):
                 end = min(start + CHUNK_SIZE, int(video['size']) - 1)
             end = int(end)
             if start == 0 and end == 1:
-                end = int(video['size']) - 1
+                return await self.download(video)
 
             data = await downloader.get_range(video, start, end + 1)
             resp = Response(
