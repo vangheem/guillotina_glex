@@ -176,8 +176,8 @@ class Stream(DownloadService):
                     'Accept-Ranges': 'Bytes',
                     'Content-Range': f'bytes {start}-{end}/{video["size"]}',
                 },
-                status=206,
-                content_type='video/' + self.get_video_ext(video))
+                status=206)
+            resp.content_type = 'video/' + self.get_video_ext(video)
             resp.content_length = (end - start) + 1
             await resp.prepare(request)
             data = await downloader.get_range(video, start, end + 1)
