@@ -139,7 +139,7 @@ class Stream(DownloadService):
             if data:
                 written += len(data)
                 resp.write(data)
-                yield
+                await asyncio.sleep(0.001)
                 await resp.drain()
             else:
                 break
