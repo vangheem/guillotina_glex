@@ -127,7 +127,7 @@ class Stream(DownloadService):
         resp = StreamResponse(
             status=200,
             headers={
-                'Content-Disposition': f'attachment; filename="{video["filename"]}"'
+                'Content-Disposition': f'attachment; filename="{video.get("filename", "video.mv4")}"'
             })
         resp.content_length = video['size']
         resp.content_type = 'video/' + self.get_video_ext(video)
