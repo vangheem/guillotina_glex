@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import concurrent
 import json
 import os
 
@@ -140,7 +141,10 @@ class Stream(DownloadService):
                 written += len(data)
                 resp.write(data)
                 await asyncio.sleep(0.001)
-                await resp.drain()
+                try:
+                    await resp.drain()
+                except concurrent.futures.CancelledError:
+                    pass
             else:
                 break
         return resp
