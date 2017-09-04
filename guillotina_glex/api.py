@@ -147,7 +147,6 @@ class Stream(DownloadService):
     def get_video_ext(self, video):
         return video['name'].split('.')[-1].lower()
 
-
     async def __call__(self):
         request = self.request
         video = await get_video(self.request.GET['id'])
@@ -167,6 +166,8 @@ class Stream(DownloadService):
             if not end:
                 end = min(start + CHUNK_SIZE, int(video['size']) - 1)
             end = int(end)
+            if start == 0 and end == 1:
+                end = int(video['size']) - 1
 
             data = await downloader.get_range(video, start, end + 1)
             resp = Response(
