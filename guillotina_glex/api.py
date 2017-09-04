@@ -47,6 +47,41 @@ async def videos(context, request):
     return db['videos']
 
 
+def _get_title(result):
+    if 'data' in result:
+        data = result['data']
+        if 'Title' in data:
+            return data['Title']
+    if 'filename' in result:
+        return result['filename'].rsplit('.', 1)[0]
+    return result['name'].split('/')[-1].rsplit('.', 1)[0]
+
+
+@configure.service(method='GET', name='@firetv',
+                   permission='guillotina.AccessContent')
+async def firetv_videos(context, request):
+    base_url = str(request.url.origin())
+    util = getUtility(IGlexUtility)
+    db = await util.get_db()
+    videos = db['videos']
+    results = []
+    for video in videos.values():
+        data = video.get('data', {})
+        image = data.get('Poster', f'{base_url}/app/movie.png')
+        results.append({
+            "id": video['id'],
+            "title": _get_title(video),
+            "thumbURL": image,
+            "imgURL": image,
+            "videoURL": f'{base_url}/@stream?id={video["id"]}',
+            "categories": [
+                data.get('Type', 'movie')
+            ],
+            "description": data.get('Plot', '')
+        })
+    return {'media': results}
+
+
 @configure.service(method='HEAD', name='@stream',
                    permission='guillotina.AccessContent')
 async def stream_head(context, request):
