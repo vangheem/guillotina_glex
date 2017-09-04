@@ -139,6 +139,7 @@ class Stream(DownloadService):
             if data:
                 written += len(data)
                 resp.write(data)
+                yield
                 await resp.drain()
             else:
                 break
@@ -166,8 +167,8 @@ class Stream(DownloadService):
             if not end:
                 end = min(start + CHUNK_SIZE, int(video['size']) - 1)
             end = int(end)
-            if start == 0 and end == 1:
-                return await self.download(video)
+            # if start == 0 and end == 1:
+            #    return await self.download(video)
 
             data = await downloader.get_range(video, start, end + 1)
             resp = Response(
