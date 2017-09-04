@@ -181,7 +181,12 @@ class Stream(DownloadService):
             resp.content_length = (end - start) + 1
             await resp.prepare(request)
             data = await downloader.get_range(video, start, end + 1)
-            resp.body = data
+            resp.write(data)
+            try:
+                await asyncio.sleep(0.001)
+                await resp.drain()
+            except concurrent.futures.CancelledError:
+                pass
             return resp
 
 
