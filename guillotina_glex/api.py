@@ -140,8 +140,8 @@ class Stream(DownloadService):
             if data:
                 written += len(data)
                 resp.write(data)
-                await asyncio.sleep(0.001)
                 try:
+                    await asyncio.sleep(0.001)
                     await resp.drain()
                 except concurrent.futures.CancelledError:
                     pass
@@ -175,6 +175,7 @@ class Stream(DownloadService):
             #    return await self.download(video)
 
             data = await downloader.get_range(video, start, end + 1)
+            print(f'sending {len(data)}')
             resp = Response(
                 headers={
                     'Accept-Ranges': 'Bytes',
