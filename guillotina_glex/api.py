@@ -74,7 +74,7 @@ async def firetv_videos(context, request):
             "title": _get_title(video),
             "thumbURL": image,
             "imgURL": image,
-            "videoURL": f'{base_url}/@download?id={video["id"]}',
+            "videoURL": f'{base_url}/@stream?id={video["id"]}',
             "categories": [
                 data.get('Type', 'movie')
             ],
