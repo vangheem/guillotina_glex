@@ -1,9 +1,10 @@
 import uuid
+
+from guillotina import app_settings
+from guillotina.auth import find_user
+from guillotina.auth.extractors import BasePolicy
 from guillotina.utils import get_authenticated_user
 from lru import LRU
-from guillotina.auth.extractors import BasePolicy
-from guillotina.auth import find_user
-
 
 _tokens = LRU(500)
 
@@ -23,7 +24,11 @@ class TokenAuthPolicy(BasePolicy):
             return None
         token = self.request.GET['token']
         if token not in _tokens:
-            return None
+            if token != app_settings['persistent_token']:
+                return None
+            else:
+                # need to set in _tokens
+                _tokens[token] = 'root'
         return {
             "type": 'token',
             "id": _tokens[token],

@@ -4,6 +4,7 @@ app_settings = {
     'omdb_api_key': 'plsBanMe',
     'download_folder': '/tmp',
     'bucket_name': 'foobar',
+    'persistent_token': 'foobar',
     "auth_extractors": [
         "guillotina.auth.extractors.BasicAuthPolicy",
         "guillotina_glex.auth.TokenAuthPolicy"

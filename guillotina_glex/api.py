@@ -41,7 +41,7 @@ def cache(duration=10 * 60):
 
 
 @configure.service(method='GET', name='@videos',
-                   permission='guillotina.AccessContent')
+                   permission='guillotina.ViewContent')
 async def videos(context, request):
     util = getUtility(IGlexUtility)
     db = await util.get_db()
@@ -59,8 +59,9 @@ def _get_title(result):
 
 
 @configure.service(method='GET', name='@firetv',
-                   permission='guillotina.AccessContent')
+                   permission='guillotina.ViewContent')
 async def firetv_videos(context, request):
+    token = request.url.query.get('token', '')
     base_url = str(request.url.origin())
     util = getUtility(IGlexUtility)
     db = await util.get_db()
@@ -74,7 +75,7 @@ async def firetv_videos(context, request):
             "title": _get_title(video),
             "thumbURL": image,
             "imgURL": image,
-            "videoURL": f'{base_url}/@stream?id={video["id"]}',
+            "videoURL": f'{base_url}/@stream?id={video["id"]}&token={token}',
             "categories": [
                 data.get('Type', 'movie')
             ],
@@ -84,7 +85,7 @@ async def firetv_videos(context, request):
 
 
 @configure.service(method='HEAD', name='@stream',
-                   permission='guillotina.AccessContent')
+                   permission='guillotina.ViewContent')
 async def stream_head(context, request):
     util = getUtility(IGlexUtility)
     db = await util.get_db()
@@ -98,7 +99,7 @@ async def stream_head(context, request):
 
 
 @configure.service(method='HEAD', name='@download',
-                   permission='guillotina.AccessContent')
+                   permission='guillotina.ViewContent')
 async def download_head(context, request):
     util = getUtility(IGlexUtility)
     db = await util.get_db()
@@ -120,7 +121,7 @@ async def get_video(video_id):
 
 
 @configure.service(method='GET', name='@stream',
-                   permission='guillotina.AccessContent')
+                   permission='guillotina.ViewContent')
 class Stream(DownloadService):
 
     async def download(self, video):
@@ -191,7 +192,7 @@ class Stream(DownloadService):
 
 
 @configure.service(method='GET', name='@download',
-                   permission='guillotina.AccessContent')
+                   permission='guillotina.ViewContent')
 class Download(Stream):
     async def __call__(self):
         video = await get_video(self.request.GET['id'])
@@ -201,13 +202,13 @@ class Download(Stream):
 
 
 @configure.service(method='POST', name='@get-token',
-                   permission='guillotina.AccessContent')
+                   permission='guillotina.ViewContent')
 async def get_token(context, request):
     return auth.get_token(request)
 
 
 @configure.service(method='POST', name='@edit-data',
-                   permission='guillotina.AccessContent')
+                   permission='guillotina.ViewContent')
 async def edit_data(context, request):
     req_data = await request.json()
     video = await get_video(req_data['id'])
